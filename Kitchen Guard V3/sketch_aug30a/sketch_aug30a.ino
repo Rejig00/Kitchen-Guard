@@ -25,7 +25,7 @@
 
 #define MQTT_PUB_DELAY    (60*1000)
 #define FAN_START_DELAY   (60*1000)
-#define FAN_RUN_DELAY     (10*1000)
+#define FAN_RUN_DELAY     (30*1000)
 
 
 //=========================== Deep Sleep ========================//
@@ -187,7 +187,7 @@ void setup()
   {
     //digitalWrite(PWR, _HIGH);         //Power LED
     beep(500,100,2);
-    //digitalWrite(MQ_PWR, HIGH);
+    digitalWrite(MQ_PWR, HIGH);
   
   
     //wifiManager.addParameter(&custom_mqtt_topic);       //Declaring custom parameter
@@ -220,14 +220,17 @@ void setup()
     beep(50,50,2);
     beep(50,50,2);
     bootCount++;
-    Serial.println("Delay Start");
-    delay(5*60*1000);  
+    //Serial.println("Delay Start");
+    //delay(5*60*1000);  
   }
   
   nvs_mqtt_topic.toCharArray(mqtt_topic, 20);
+  nvs_ssid.toCharArray(ssid, (nvs_ssid.length()+1));
+  nvs_pass.toCharArray(pass, (nvs_pass.length()+1));
   client.setServer(mqtt_server, 15755);
   preferences.end();
-  
+  Fan_run_start     = millis();
+  Fan_run_stop      = millis();
 }
 
 
@@ -247,6 +250,16 @@ void loop()
   while(WiFi.status() != WL_CONNECTED) {  // while being connected
     delay(500);
     Serial.print(".");
+    /*Fan_run_start = millis();
+    if(Fan_run_start - Fan_run_stop > FAN_RUN_DELAY)
+    {
+      digitalWrite(FN_PWR, LOW);
+      Serial.println("Fan has stopped");
+      Fan_run_stop  =   Fan_run_start;
+      MQTT_publish = true;
+      Serial.println("Deep Sleep Start");
+      esp_deep_sleep_start();
+    }*/
   }
   //digitalWrite(WIFI_PIN, _HIGH);
   if (!client.connected()) {
@@ -258,13 +271,13 @@ void loop()
   //========================= Get Gas Level=============================//
   getAvgGasLevel();
   addPPMToPayload();
-  if(MQ_LPG_PPM > MQ_LPG_LTH && MQ_LPG_PPM < MQ_LPG_ATH)
+  /*if(MQ_LPG_PPM > MQ_LPG_LTH && MQ_LPG_PPM < MQ_LPG_ATH)
     beep(50, 200, 1);
   else if(MQ_LPG_PPM > MQ_LPG_ATH && MQ_LPG_PPM < MQ_LPG_CTH)
     beep(100, 200, 2);
   else if(MQ_LPG_PPM > MQ_LPG_CTH)
-    beep(200, 50, 3);
-
+    beep(200, 50, 3);*/
+    Serial.println(MQ_LPG_PPM);
     //==================== Publish to MQTT =======================//
     //Now = millis();
   //if(Now-Then > MQTT_PUB_DELAY)
@@ -287,7 +300,7 @@ void loop()
     digitalWrite(FN_PWR, HIGH);
     Fan_stop    =   Fan_start;
     Serial.println("Fan has started");
-    Fan_run_stop = millis();
+    //Fan_run_stop = millis();
   }
 
 
@@ -299,6 +312,7 @@ void loop()
     digitalWrite(FN_PWR, LOW);
     Serial.println("Fan has stopped");
     Fan_run_stop  =   Fan_run_start;
+    MQTT_publish = true;
     Serial.println("Deep Sleep Start");
     esp_deep_sleep_start();
   }
@@ -342,6 +356,16 @@ void reconnectMQTT() {
   while(WiFi.status() != WL_CONNECTED) {  // while being connected
     delay(500);
     Serial.print(".");
+    /*Fan_run_start = millis();
+    if(Fan_run_start - Fan_run_stop > FAN_RUN_DELAY)
+    {
+      digitalWrite(FN_PWR, LOW);
+      Serial.println("Fan has stopped");
+      Fan_run_stop  =   Fan_run_start;
+      MQTT_publish = true;
+      Serial.println("Deep Sleep Start");
+      esp_deep_sleep_start();
+    }*/
   }
     Serial.print("Attempting MQTT connection...");
     // Attempt to connect
@@ -354,6 +378,16 @@ void reconnectMQTT() {
       Serial.println(" try again in 5 seconds");
       // Wait 5 seconds before retrying
       delay(5000);
+      /*Fan_run_start = millis();
+      if(Fan_run_start - Fan_run_stop > FAN_RUN_DELAY)
+      {
+        digitalWrite(FN_PWR, LOW);
+        Serial.println("Fan has stopped");
+        Fan_run_stop  =   Fan_run_start;
+        MQTT_publish = true;
+        Serial.println("Deep Sleep Start");
+        esp_deep_sleep_start();
+      }*/
     }
   }
 }

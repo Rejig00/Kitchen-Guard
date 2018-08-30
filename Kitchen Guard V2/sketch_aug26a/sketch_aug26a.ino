@@ -10,23 +10,23 @@
 
 
 //==========================================================================//
-#define MQ_PWR    16        //Gas Sensor Switch
-#define BZ_PWR    25        //Buzzer Switch
-#define FN_PWR    4         //Fan Switch
-#define WIFI_PIN  27           
-#define MQTT_PIN  26            
-#define PWR       14
+#define MQ_PWR      16        //Gas Sensor Switch
+#define BZ_PWR      25        //Buzzer Switch
+#define FN_PWR      4         //Fan Switch
+//#define WIFI_PIN  27           
+//#define MQTT_PIN  26            
+//#define PWR       14
 
-#define MQ_SNS    39
-#define BT_SNS    36
-#define SW_USR    17
+#define MQ_SNS      39
+#define BT_SNS      36
+#define SW_USR      17
 
-#define MQTT_PUB_DELAY   (5*1000)
+#define MQTT_PUB_DELAY   (60*1000)
 #define FAN_START_DELAY  (60*1000)
 #define FAN_RUN_DELAY    (10*1000)
 
-#define _HIGH LOW
-#define _LOW  HIGH
+//#define _HIGH     LOW
+//#define _LOW      HIGH
 
 
 
@@ -69,12 +69,12 @@ const char*       mqtt_pass         = "5zsEpwhhNpDF";
 //=========== Function Declarations=============//
 void initIO(void)
 {
-  pinMode(MQ_PWR, OUTPUT);     //active high 
-  pinMode(BZ_PWR, OUTPUT);     //active high 
-  pinMode(FN_PWR, OUTPUT);     //active high
-  pinMode(PWR, OUTPUT);        //active low
-  pinMode(WIFI_PIN, OUTPUT);   //active low 
-  pinMode(MQTT_PIN, OUTPUT);   //active low
+  pinMode(MQ_PWR, OUTPUT);        //active high 
+  pinMode(BZ_PWR, OUTPUT);        //active high 
+  pinMode(FN_PWR, OUTPUT);        //active high
+  //pinMode(PWR, OUTPUT);         //active low
+  //pinMode(WIFI_PIN, OUTPUT);    //active low 
+  //pinMode(MQTT_PIN, OUTPUT);    //active low
 
   pinMode(MQ_SNS, INPUT);   //analog 
   pinMode(BT_SNS, INPUT);   //analog
@@ -83,9 +83,9 @@ void initIO(void)
 
 void setInitIO(void)
 {
-  digitalWrite(PWR, _LOW);
-  digitalWrite(WIFI_PIN, _LOW);
-  digitalWrite(MQTT_PIN, _LOW);
+  //digitalWrite(PWR, _LOW);
+  //digitalWrite(WIFI_PIN, _LOW);
+  //digitalWrite(MQTT_PIN, _LOW);
   digitalWrite(MQ_PWR, LOW);
   digitalWrite(BZ_PWR, LOW);
   digitalWrite(FN_PWR, LOW);
@@ -155,9 +155,9 @@ void setup()
   setupNVS();
   //====================Initials=================// 
 
-  digitalWrite(PWR, _HIGH);         //Power LED
+  //digitalWrite(PWR, _HIGH);         //Power LED
   beep(500,100,2);
-  digitalWrite(MQ_PWR, HIGH);
+  //digitalWrite(MQ_PWR, HIGH);
   
   
   //wifiManager.addParameter(&custom_mqtt_topic);       //Declaring custom parameter
@@ -186,7 +186,7 @@ void setup()
   }
   Serial.print("Connected to: ");
   Serial.println(WiFi.SSID());
-  digitalWrite(WIFI_PIN, _HIGH);
+  //digitalWrite(WIFI_PIN, _HIGH);
   beep(50,50,2);
   beep(50,50,2);
   preferences.end();
@@ -206,21 +206,21 @@ void loop()
 
   //==================== WiFi Connection Stability====================//
   if(WiFi.status() != WL_CONNECTED){
-    digitalWrite(WIFI_PIN , _LOW);
-    digitalWrite(MQTT_PIN , _LOW);
+    //digitalWrite(WIFI_PIN , _LOW);
+    //digitalWrite(MQTT_PIN , _LOW);
     reconnectWifi();
   }
   while(WiFi.status() != WL_CONNECTED) {  // while being connected
     delay(500);
     Serial.print(".");
   }
-  digitalWrite(WIFI_PIN, _HIGH);
+  //digitalWrite(WIFI_PIN, _HIGH);
   if (!client.connected()) {
-    digitalWrite(MQTT_PIN , _LOW);
+    //digitalWrite(MQTT_PIN , _LOW);
     reconnectMQTT();
   }
   //===================================================================//
-
+  delay(5*60*1000);
   //========================= Get Gas Level=============================//
   getAvgGasLevel();
   addPPMToPayload();
@@ -300,7 +300,7 @@ void reconnectMQTT() {
   while (!client.connected()) {
     delay(1000);
     if(WiFi.status() != WL_CONNECTED){
-    digitalWrite(WIFI_PIN , _LOW);
+    //digitalWrite(WIFI_PIN , _LOW);
     reconnectWifi();
   }
   while(WiFi.status() != WL_CONNECTED) {  // while being connected
@@ -310,7 +310,7 @@ void reconnectMQTT() {
     Serial.print("Attempting MQTT connection...");
     // Attempt to connect
     if (client.connect(mqtt_client,mqtt_user,mqtt_pass)) {
-      digitalWrite(MQTT_PIN , _HIGH);
+      //digitalWrite(MQTT_PIN , _HIGH);
       Serial.println("connected");   
     } else {
       Serial.print("failed, rc=");
@@ -326,7 +326,7 @@ void reconnectMQTT() {
 //====================== Reconnect WiFi ==============================//
 
 void reconnectWifi() {
-  digitalWrite(WIFI_PIN , _LOW);
+  //digitalWrite(WIFI_PIN , _LOW);
   Serial.println("Reconecting WiFi...");
   WiFi.begin(ssid, pass);
 }

@@ -220,16 +220,16 @@ void loop()
     reconnectMQTT();
   }
   //===================================================================//
-  delay(5*60*1000);
+  //delay(5*60*1000);
   //========================= Get Gas Level=============================//
   getAvgGasLevel();
   addPPMToPayload();
-  if(MQ_LPG_PPM > MQ_LPG_LTH && MQ_LPG_PPM < MQ_LPG_ATH)
+  /*if(MQ_LPG_PPM > MQ_LPG_LTH && MQ_LPG_PPM < MQ_LPG_ATH)
     beep(50, 200, 1);
   else if(MQ_LPG_PPM > MQ_LPG_ATH && MQ_LPG_PPM < MQ_LPG_CTH)
     beep(100, 200, 2);
   else if(MQ_LPG_PPM > MQ_LPG_CTH)
-    beep(200, 50, 3);
+    beep(200, 50, 3);*/
 
     //==================== Publish to MQTT =======================//
     Now = millis();

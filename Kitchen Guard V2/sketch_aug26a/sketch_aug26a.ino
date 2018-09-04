@@ -43,11 +43,11 @@ PubSubClient  client(espClient);
 //======================== Declaring Variables==================================//
 String            nvs_ssid;           //For fetching saved SSID
 String            nvs_pass;           //For fetching saved Password
-//String          nvs_mqtt_topic;     //For fetching saved Topic
+String            nvs_mqtt_topic;     //For fetching saved Topic
 String            to_be_saved_ssid;
 String            to_be_saved_pass;
 String            mqttpayload       = "10000.000";    //ppm
-String            MQTT_Topic;
+//String            MQTT_Topic;
 
 unsigned long     Now               = 0;
 unsigned long     Then              = 0;
@@ -101,7 +101,7 @@ void fetch_saved_data()
 {
   nvs_ssid = preferences.getString("ssid");               //Fetch the saved SSID
   nvs_pass = preferences.getString("pass");               //Fetch the saved Password
-  //nvs_mqtt_topic = preferences.getString("mqtt_topic"); //Fetch the saved Topic
+  nvs_mqtt_topic = preferences.getString("mqtt_topic");   //Fetch the saved Topic
 }
 
 void saveToNVS()
@@ -109,10 +109,14 @@ void saveToNVS()
    to_be_saved_ssid = wifiManager.get_ssid();
    to_be_saved_pass = wifiManager.get_pass();
    //strcpy(mqtt_topic, custom_mqtt_topic.getValue());
-   //preferences.putString("mqtt_topic", mqtt_topic);
+   
+   preferences.putString("mqtt_topic", nvs_mqtt_topic);
    preferences.putString("ssid", to_be_saved_ssid);
    preferences.putString("pass", to_be_saved_pass);
    //nvs_mqtt_topic = mqtt_topic;           //nvs_topic is used for publishing. So we have copied mqtt_topic(which is a char) to nvs_mqtt_topic(which is a string
+
+   to_be_saved_ssid.toCharArray(ssid, (nvs_ssid.length()+1));         //Stores the data to "ssid" for future reconnection
+   to_be_saved_pass.toCharArray(pass, (nvs_pass.length()+1));
 }
 
 
@@ -153,22 +157,24 @@ void setup()
   initIO();                         
   setInitIO();
   setupNVS();
+  fetch_saved_data();       //Fetch the datas stored in non-volatile-memory
   //====================Initials=================// 
 
   //digitalWrite(PWR, _HIGH);         //Power LED
   beep(500,100,2);
-  //digitalWrite(MQ_PWR, HIGH);
+  digitalWrite(MQ_PWR, HIGH);
   
   
   //wifiManager.addParameter(&custom_mqtt_topic);       //Declaring custom parameter
 
-  fetch_saved_data();       //Fetch the datas stored in non-volatile-memory
+  
 
   if(nvs_ssid.length() == 0)    //If no data is saved in non-volatile-memory
   {
     //Serial.println(nvs_ssid);
     wifiManager.setConfigPortalTimeout(180);                              //In case of connection failure during configuration, after 3 minutes the ESP will return to AP mode
     wifiManager.startConfigPortal("Kitchen Guard V1.0.0", "123456789");   //Initial Access point ssid and pass
+    nvs_mqtt_topic = getTopic();
     saveToNVS();
     Serial.println("Configurations Saved");
   }
@@ -189,11 +195,11 @@ void setup()
   //digitalWrite(WIFI_PIN, _HIGH);
   beep(50,50,2);
   beep(50,50,2);
-  preferences.end();
   
+  
+  nvs_mqtt_topic.toCharArray(mqtt_topic, 20);
   client.setServer(mqtt_server, 15755);
-  MQTT_Topic = getTopic();
-  MQTT_Topic.toCharArray(mqtt_topic, 20);
+  preferences.end();
 }
 
 

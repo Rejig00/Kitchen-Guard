@@ -21,7 +21,7 @@
 #define BT_SNS      36
 #define SW_USR      17
 
-#define MQTT_PUB_DELAY   (60*1000)
+//#define MQTT_PUB_DELAY   (60*1000)
 #define FAN_START_DELAY  (60*1000)
 #define FAN_RUN_DELAY    (10*1000)
 
@@ -57,6 +57,8 @@ unsigned long     Fan_stop          = 0;
 unsigned long     Fan_run_start     = 0;
 unsigned long     Fan_run_stop      = 0;
 
+unsigned int      MQTT_PUB_DELAY    = (60*1000);
+
 char              ssid[20];
 char              pass[20];
 char              mqtt_topic[20];
@@ -74,13 +76,13 @@ void initIO(void)
   pinMode(MQ_PWR, OUTPUT);        //active high 
   pinMode(BZ_PWR, OUTPUT);        //active high 
   pinMode(FN_PWR, OUTPUT);        //active high
-  pinMode(PWR, OUTPUT);         //active low
-  pinMode(WIFI_PIN, OUTPUT);    //active low 
-  pinMode(MQTT_PIN, OUTPUT);    //active low
+  pinMode(PWR, OUTPUT);           //active low
+  pinMode(WIFI_PIN, OUTPUT);      //active low 
+  pinMode(MQTT_PIN, OUTPUT);      //active low
 
-  pinMode(MQ_SNS, INPUT);   //analog 
-  pinMode(BT_SNS, INPUT);   //analog
-  pinMode(SW_USR, INPUT);   //digital interrupt, pulled up, NO  
+  pinMode(MQ_SNS, INPUT);         //analog 
+  pinMode(BT_SNS, INPUT);         //analog
+  pinMode(SW_USR, INPUT);         //digital interrupt, pulled up, NO  
 }
 
 void setInitIO(void)
@@ -170,7 +172,7 @@ void setup()
   
   //wifiManager.addParameter(&custom_mqtt_topic);       //Declaring custom parameter
 
-  
+  //========================WiFi=================================//
 
   if(nvs_ssid.length() == 0)    //If no data is saved in non-volatile-memory
   {
@@ -193,19 +195,19 @@ void setup()
       Serial.print(".");
     }
   }
+
+  //=======================WiFi===================================//
+  
   Serial.print("Connected to: ");
   Serial.println(WiFi.SSID());
   //digitalWrite(WIFI_PIN, _HIGH);
   beep(50,50,2);
   beep(50,50,2);
   
-  Serial.println(nvs_mqtt_topic);
-  nvs_mqtt_topic.toCharArray(mqtt_topic, 20);
-  MQTT_CLIENT = getTopic();
-  MQTT_CLIENT.toCharArray(mqtt_client, 20);
-  client.setServer(mqtt_server, 15755);
-  Serial.println(mqtt_topic);
-  Serial.println(mqtt_client);
+  nvs_mqtt_topic.toCharArray(mqtt_topic, 20);     //Convert String to char for publishing
+  MQTT_CLIENT = getTopic();                       //Generate unique client ID
+  MQTT_CLIENT.toCharArray(mqtt_client, 20);       //Converting String in char for connecting mqtt
+  client.setServer(mqtt_server, 15755);           //Server for MQTT
   preferences.end();
 }
 
@@ -216,8 +218,79 @@ void setup()
 
 void loop() 
 {
+  
+  check_WiFi_stability();
+  
+  //========================= Get Gas Level=============================//
+  
+  getAvgGasLevel();
+  addPPMToPayload();
 
-  //==================== WiFi Connection Stability====================//
+  MQTT_PUB_DELAY = (60*1000);
+  
+  if(MQ_LPG_PPM > MQ_LPG_LTH && MQ_LPG_PPM < MQ_LPG_ATH)
+    {
+      //beep(50, 200, 1);
+    }
+  else if(MQ_LPG_PPM > MQ_LPG_ATH && MQ_LPG_PPM < MQ_LPG_CTH)
+    {
+      //beep(100, 200, 2);
+    }
+  else if(MQ_LPG_PPM > MQ_LPG_CTH)
+    {
+      //beep(200, 50, 3);
+      MQTT_PUB_DELAY = (5*1000);
+    }
+
+  //==================== Publish to MQTT =======================//
+  Now = millis();
+  if(Now-Then > MQTT_PUB_DELAY)
+  {
+    
+    Serial.println("Publishing...");
+    while(!client.publish(mqtt_topic, mqttpayload.c_str())) 
+    //client.publish("Nafiur", "Hello");
+    Serial.print('>');
+    Serial.println(mqttpayload);
+    Serial.println(mqtt_topic);
+    
+    Then = Now;
+  }
+
+  //================= Check if fan should start/stop ================//
+  
+  fan();
+
+  //===================== RESET ==================================//
+  
+  //Serial.println(digitalRead(SW_USR));
+  if(!digitalRead(SW_USR))
+  {
+    preferences.begin("my-app", false);
+    preferences.clear();                              //Clears the preference
+    preferences.end();
+    ESP.restart();
+  }
+
+  //=======================================================================//
+
+  client.loop();
+}
+
+//======================== End of Loop ==========================//
+
+
+//===================== Payload ===========================================//
+
+
+void addPPMToPayload(void)
+{
+  mqttpayload = String(MQ_LPG_PPM,2);
+  //mqttpayload = analogRead(AN_SENSOR_0);
+}
+
+void check_WiFi_stability(void)
+{
   if(WiFi.status() != WL_CONNECTED){
     //digitalWrite(WIFI_PIN , _LOW);
     //digitalWrite(MQTT_PIN , _LOW);
@@ -232,33 +305,11 @@ void loop()
     //digitalWrite(MQTT_PIN , _LOW);
     reconnectMQTT();
   }
-  //===================================================================//
-  //delay(5*60*1000);
-  //========================= Get Gas Level=============================//
-  getAvgGasLevel();
-  addPPMToPayload();
-  /*if(MQ_LPG_PPM > MQ_LPG_LTH && MQ_LPG_PPM < MQ_LPG_ATH)
-    beep(50, 200, 1);
-  else if(MQ_LPG_PPM > MQ_LPG_ATH && MQ_LPG_PPM < MQ_LPG_CTH)
-    beep(100, 200, 2);
-  else if(MQ_LPG_PPM > MQ_LPG_CTH)
-    beep(200, 50, 3);*/
+}
 
-    //==================== Publish to MQTT =======================//
-    Now = millis();
-  if(Now-Then > MQTT_PUB_DELAY)
-  {
-    
-    Serial.println("Publishing...");
-    while(!client.publish(mqtt_topic, mqttpayload.c_str())) 
-    //client.publish("Nafiur", "Hello");
-    Serial.print('>');
-    Serial.println(mqttpayload);
-    Serial.println(mqtt_topic);
-    
-    Then = Now;
-  }
 
+void fan(void)
+{
   //====================== Fan Start =================================//
 
   Fan_start = millis();
@@ -281,33 +332,7 @@ void loop()
     Serial.println("Fan has stopped");
     Fan_run_stop  =   Fan_run_start;
   }
-//  Serial.println(digitalRead(SW_USR));
-  if(!digitalRead(SW_USR))
-  {
-    preferences.begin("my-app", false);
-    preferences.clear();                              //Clears the preference
-    preferences.end();
-    ESP.restart();
-  }
-  client.loop();
 }
-
-//======================== End of Loop ==========================//
-
-
-//===================== Payload ===========================================//
-
-
-void addPPMToPayload(void)
-{
-  mqttpayload = String(MQ_LPG_PPM,2);
-  //mqttpayload = analogRead(AN_SENSOR_0);
-}
-
-
-
-
-
 
 //================ Reconnect MQTT ===========================//
 

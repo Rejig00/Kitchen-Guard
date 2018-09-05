@@ -13,9 +13,9 @@
 #define MQ_PWR      16        //Gas Sensor Switch
 #define BZ_PWR      25        //Buzzer Switch
 #define FN_PWR      4         //Fan Switch
-//#define WIFI_PIN  27           
-//#define MQTT_PIN  26            
-//#define PWR       14
+#define WIFI_PIN    27           
+#define MQTT_PIN    26            
+#define PWR         14
 
 #define MQ_SNS      39
 #define BT_SNS      36
@@ -25,8 +25,8 @@
 #define FAN_START_DELAY  (60*1000)
 #define FAN_RUN_DELAY    (10*1000)
 
-//#define _HIGH     LOW
-//#define _LOW      HIGH
+#define _HIGH       LOW
+#define _LOW        HIGH
 
 
 
@@ -47,7 +47,8 @@ String            nvs_mqtt_topic;     //For fetching saved Topic
 String            to_be_saved_ssid;
 String            to_be_saved_pass;
 String            mqttpayload       = "10000.000";    //ppm
-//String            MQTT_Topic;
+//String          MQTT_Topic;
+String            MQTT_CLIENT;
 
 unsigned long     Now               = 0;
 unsigned long     Then              = 0;
@@ -59,8 +60,9 @@ unsigned long     Fan_run_stop      = 0;
 char              ssid[20];
 char              pass[20];
 char              mqtt_topic[20];
+char              mqtt_client[20];
 
-const char*       mqtt_client       = "espClient";
+//const char*     mqtt_client       = "espClient";
 const char*       mqtt_server       = "m14.cloudmqtt.com";
 const char*       mqtt_user         = "ksnkwraf";
 const char*       mqtt_pass         = "5zsEpwhhNpDF";
@@ -72,9 +74,9 @@ void initIO(void)
   pinMode(MQ_PWR, OUTPUT);        //active high 
   pinMode(BZ_PWR, OUTPUT);        //active high 
   pinMode(FN_PWR, OUTPUT);        //active high
-  //pinMode(PWR, OUTPUT);         //active low
-  //pinMode(WIFI_PIN, OUTPUT);    //active low 
-  //pinMode(MQTT_PIN, OUTPUT);    //active low
+  pinMode(PWR, OUTPUT);         //active low
+  pinMode(WIFI_PIN, OUTPUT);    //active low 
+  pinMode(MQTT_PIN, OUTPUT);    //active low
 
   pinMode(MQ_SNS, INPUT);   //analog 
   pinMode(BT_SNS, INPUT);   //analog
@@ -83,9 +85,9 @@ void initIO(void)
 
 void setInitIO(void)
 {
-  //digitalWrite(PWR, _LOW);
-  //digitalWrite(WIFI_PIN, _LOW);
-  //digitalWrite(MQTT_PIN, _LOW);
+  digitalWrite(PWR, _LOW);
+  digitalWrite(WIFI_PIN, _LOW);
+  digitalWrite(MQTT_PIN, _LOW);
   digitalWrite(MQ_PWR, LOW);
   digitalWrite(BZ_PWR, LOW);
   digitalWrite(FN_PWR, LOW);
@@ -102,6 +104,7 @@ void fetch_saved_data()
   nvs_ssid = preferences.getString("ssid");               //Fetch the saved SSID
   nvs_pass = preferences.getString("pass");               //Fetch the saved Password
   nvs_mqtt_topic = preferences.getString("mqtt_topic");   //Fetch the saved Topic
+  Serial.println(nvs_mqtt_topic);
 }
 
 void saveToNVS()
@@ -196,9 +199,13 @@ void setup()
   beep(50,50,2);
   beep(50,50,2);
   
-  
+  Serial.println(nvs_mqtt_topic);
   nvs_mqtt_topic.toCharArray(mqtt_topic, 20);
+  MQTT_CLIENT = getTopic();
+  MQTT_CLIENT.toCharArray(mqtt_client, 20);
   client.setServer(mqtt_server, 15755);
+  Serial.println(mqtt_topic);
+  Serial.println(mqtt_client);
   preferences.end();
 }
 
@@ -244,8 +251,10 @@ void loop()
     
     Serial.println("Publishing...");
     while(!client.publish(mqtt_topic, mqttpayload.c_str())) 
+    //client.publish("Nafiur", "Hello");
     Serial.print('>');
     Serial.println(mqttpayload);
+    Serial.println(mqtt_topic);
     
     Then = Now;
   }

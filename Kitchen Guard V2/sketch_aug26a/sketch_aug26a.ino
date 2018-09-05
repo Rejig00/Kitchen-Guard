@@ -289,6 +289,7 @@ void loop()
     preferences.end();
     ESP.restart();
   }
+  client.loop();
 }
 
 //======================== End of Loop ==========================//
